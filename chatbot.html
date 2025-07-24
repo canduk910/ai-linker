@@ -152,7 +152,7 @@
             // 🚨 수정된 부분 시작
             try {
                 // 요청 URL을 우리 서버리스 함수 주소('/api/chat')로 변경
-                const response = await fetch('/api/chat', { // <-- URL 변경
+                const response = await fetch('/netlify/functions/chat', { // <-- URL 변경
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
