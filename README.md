@@ -1,4 +1,4 @@
-# AI-Linker 챗봇 - OpenAI API 통합 및 보안 강화
+# AI-Linker 챗봇 - OpenAI API 통합
 
 ## 개요
 AI-Linker는 공식 기관용 AI 챗봇 서비스로, OpenAI GPT 모델을 기반으로 한 지능형 응답 시스템입니다. 보안이 강화되어 안전하고 신뢰할 수 있는 대화 서비스를 제공합니다.
