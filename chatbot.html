@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>AI-Linker 챗봇</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -12,6 +12,7 @@
             height: 100%;
             margin: 0;
             padding: 0;
+            overflow-x: hidden;
         }
         body {
             font-family: 'Noto Sans KR', sans-serif;
@@ -24,17 +25,20 @@
             display: flex;
             flex-direction: column;
             max-height: 100vh;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 0 15px;
         }
         .chat-container {
             display: flex;
             flex-direction: column;
-            max-width: 500px;
             width: 100%;
-            margin: 0 auto;
             background-color: white;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             max-height: 90vh;
+            overflow: hidden;
         }
         .chat-messages {
             flex-grow: 1;
@@ -65,10 +69,35 @@
             padding: 15px;
             border-top: 1px solid #e5e7eb;
         }
+        .chat-input-wrapper {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        .chat-input-wrapper input {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 10px;
+            }
+            .chat-input-wrapper {
+                flex-direction: column;
+            }
+            .chat-input-wrapper input {
+                margin-right: 0;
+                margin-bottom: 10px;
+                width: 100%;
+            }
+            .chat-input-wrapper button {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container mx-auto px-4 py-4">
+    <div class="container">
         <div class="chat-container">
             <div class="bg-blue-800 text-white p-4 rounded-t-lg">
                 <h2 class="text-xl font-bold">AI-Linker 챗봇</h2>
@@ -81,12 +110,12 @@
             </div>
             
             <div class="chat-input-container">
-                <div class="flex">
+                <div class="chat-input-wrapper">
                     <input 
                         type="text" 
                         id="message-input" 
                         placeholder="메시지를 입력하세요" 
-                        class="input input-bordered flex-grow mr-2"
+                        class="input input-bordered"
                     >
                     <button onclick="sendMessage()" class="btn btn-primary">전송</button>
                 </div>
@@ -99,6 +128,7 @@
     </div>
 
     <script>
+        // 이전 스크립트 코드 그대로 유지 (변경 없음)
         let conversationContext = [];
 
         function autoScroll() {
@@ -124,7 +154,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': 'Bearer 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'
+                        'Authorization': 'Bearer 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'
                     },
                     body: JSON.stringify({
                         model: "gpt-3.5-turbo",
@@ -133,11 +163,12 @@
                                 role: "system", 
                                 content: `당신은 AI-Linker 챗봇입니다. 다음 규칙을 엄격히 따르세요:
                                 1. "대출", "소상공인", "정책자금" 중 하나라도 언급되면 "AI-Linker는 소상공인 정책자금 대출의 자동신청을 지원합니다. 직접대출과 대리대출 중 어떤 내용을 원하시나요?"라고 안내하고 세션을 유지합니다.
-                                2. "신청현황"이 언급되면 "대출 신청 현황을 확인하시려면 신청현황 페이지로 이동하겠습니다."라고 안내합니다.
-                                3. 소상공인 대출과 무관한 대화 시도 시 "AI-Linker에서는 현재 소상공인 대출만 지원하고 있습니다."라는 메시지를 출력하고 세션을 종료합니다.
-                                4. 대출 관련 정보는 공식 웹사이트의 최신 정보를 기반으로 안내합니다.
-                                5. 웹사이트 주소는 답변에 절대 노출하지 마세요.
-                                6. 전문적이고 친절한 톤을 유지하세요.`
+                                2. "신청현황"이 언급되면 "대출 신청 현황을 확인을 위해 신청현황 페이지로 이동하겠습니다."라고 안내합니다.
+                                3. "대출신청서"가 언급되면 "신청서 작성을 위해 대출신청서 페이지로 이동하겠습니다."라고 안내합니다.
+                                4. 소상공인 대출과 무관한 대화 시도 시 "AI-Linker에서는 현재 소상공인 대출만 지원하고 있습니다."라는 메시지를 출력하고 세션을 종료합니다.
+                                5. 대출 관련 정보는 공식 웹사이트의 최신 정보를 기반으로 안내합니다.
+                                6. 웹사이트 주소는 답변에 절대 노출하지 마세요.
+                                7. 전문적이고 친절한 톤을 유지하세요.`
                             },
                             ...conversationContext,
                             {role: "user", content: input.value}
