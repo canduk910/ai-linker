@@ -149,20 +149,23 @@
             messagesContainer.appendChild(userMessage);
             autoScroll();
 
+            // 🚨 수정된 부분 시작
             try {
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                // 요청 URL을 우리 서버리스 함수 주소('/api/chat')로 변경
+                const response = await fetch('/api/chat', { // <-- URL 변경
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer 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'
+                        'Content-Type': 'application/json'
+                        // 🚨 'Authorization' 헤더를 완전히 제거!
                     },
+                    // OpenAI에 보낼 전체 요청 본문을 body에 담아 전송
                     body: JSON.stringify({
                         model: "gpt-3.5-turbo",
                         messages: [
                             {
                                 role: "system", 
                                 content: `당신은 AI-Linker 챗봇입니다. 다음 규칙을 엄격히 따르세요:
-                                1. "대출", "소상공인", "정책자금" 중 하나라도 언급되면 "AI-Linker는 소상공인 정책자금 대출의 자동신청을 지원합니다. 직접대출과 대리대출 중 어떤 내용을 원하시나요?"라고 안내하고 세션을 유지합니다.
+                                1. "대출", "소상공인", "정책자금" 중 하나라도 언급되면 "AI-Linker는 소상공인 정책자금 대출의 자동신청을 지원합니다. 어떤 유형의 대출신청을 원하시나요?"라고 안내하고 세션을 유지합니다.
                                 2. "신청현황"이 언급되면 "대출 신청 현황을 확인을 위해 신청현황 페이지로 이동하겠습니다."라고 안내합니다.
                                 3. "대출신청서"가 언급되면 "신청서 작성을 위해 대출신청서 페이지로 이동하겠습니다."라고 안내합니다.
                                 4. 소상공인 대출과 무관한 대화 시도 시 "AI-Linker에서는 현재 소상공인 대출만 지원하고 있습니다."라는 메시지를 출력하고 세션을 종료합니다.
@@ -175,6 +178,7 @@
                         ]
                     })
                 });
+                // 🚨 수정된 부분 끝
 
                 const data = await response.json();
                 const aiResponse = data.choices[0].message.content;
@@ -201,6 +205,13 @@
                 if (aiResponse.includes('신청현황 페이지로 이동')) {
                     setTimeout(() => {
                         window.location.href = 'status.html';
+                    }, 1500);
+                }
+
+                // 대출신청서 페이지로 이동 로직
+                if (aiResponse.includes('대출신청서 페이지로 이동')) {
+                    setTimeout(() => {
+                        window.location.href = 'apply.html';
                     }, 1500);
                 }
 
