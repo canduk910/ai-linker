@@ -1,0 +1,4 @@
+/* Tailwind CSS 최소한의 스타일 */
+*,::after,::before{box-sizing:border-box;border:0 solid}
+.container{width:100%;margin-right:auto;margin-left:auto;padding-right:1rem;padding-left:1rem}
+/* 필요한 최소한의 Tailwind 유틸리티 클래스 추가 */

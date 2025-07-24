@@ -1,0 +1,5 @@
+/* DaisyUI 최소한의 스타일 */
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:0.5rem 1rem;border-radius:0.5rem}
+.btn-primary{background-color:#1E40AF;color:white}
+.btn-secondary{background-color:#87CEEB;color:white}
+/* 필요한 최소한의 DaisyUI 컴포넌트 스타일 추가 */

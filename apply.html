@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>AI-Linker 대출 신청</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f4f6f9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-12">
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-blue-800 mb-4">대출 신청서</h1>
+            <p class="text-xl text-gray-600">소상공인을 위한 간편 대출 신청</p>
+        </div>
+
+        <form class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">회사 이름</span>
+                    </label>
+                    <input type="text" placeholder="회사명 입력" class="input input-bordered" required />
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">사업자등록번호</span>
+                    </label>
+                    <input type="text" placeholder="사업자등록번호 입력" class="input input-bordered" required />
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">대표자 이름</span>
+                    </label>
+                    <input type="text" placeholder="대표자명 입력" class="input input-bordered" required />
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">연락처</span>
+                    </label>
+                    <input type="tel" placeholder="연락처 입력" class="input input-bordered" required />
+                </div>
+            </div>
+
+            <div class="form-control mt-6">
+                <label class="label">
+                    <span class="label-text">사업장 주소</span>
+                </label>
+                <input type="text" placeholder="사업장 주소 입력" class="input input-bordered" required />
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6 mt-6">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">업종</span>
+                    </label>
+                    <input type="text" placeholder="업종 입력" class="input input-bordered" required />
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">직원 수</span>
+                    </label>
+                    <input type="number" placeholder="직원 수 입력" class="input input-bordered" required />
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">연간매출</span>
+                    </label>
+                    <input type="number" placeholder="연간매출 입력" class="input input-bordered" required />
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-6 mt-6">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">요청 대출금액</span>
+                    </label>
+                    <input type="number" placeholder="대출금액 입력" class="input input-bordered" required />
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">대출목적</span>
+                    </label>
+                    <select class="select select-bordered" required>
+                        <option disabled selected>대출목적 선택</option>
+                        <option>운전자금</option>
+                        <option>시설자금</option>
+                        <option>창업자금</option>
+                        <option>기타</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-control mt-6">
+                <label class="label">
+                    <span class="label-text">사업설명</span>
+                </label>
+                <textarea class="textarea textarea-bordered h-24" placeholder="사업에 대한 간략한 설명을 입력해주세요" required></textarea>
+            </div>
+
+            <div class="form-control mt-6">
+                <button class="btn btn-primary">대출 신청하기</button>
+            </div>
+        </form>
+
+        <div class="text-center mt-12">
+            <a href="index.html" class="btn btn-ghost">메인으로 돌아가기</a>
+        </div>
+    </div>
+</body>
+</html>

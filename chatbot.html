@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>AI-Linker 챗봇</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f4f6f9;
+            display: flex;
+            flex-direction: column;
+        }
+        .container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            max-height: 100vh;
+        }
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            max-width: 500px;
+            width: 100%;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-height: 90vh;
+        }
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: #3B82F6;
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .system-message {
+            background-color: #1E40AF;
+            color: white;
+            align-self: flex-start;
+        }
+        .chat-input-container {
+            padding: 15px;
+            border-top: 1px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-4">
+        <div class="chat-container">
+            <div class="bg-blue-800 text-white p-4 rounded-t-lg">
+                <h2 class="text-xl font-bold">AI-Linker 챗봇</h2>
+            </div>
+            
+            <div id="chat-messages" class="chat-messages">
+                <div class="message system-message">
+                    안녕하세요! AI-Linker입니다. 소상공인 대출 상담을 도와드리겠습니다.
+                </div>
+            </div>
+            
+            <div class="chat-input-container">
+                <div class="flex">
+                    <input 
+                        type="text" 
+                        id="message-input" 
+                        placeholder="메시지를 입력하세요" 
+                        class="input input-bordered flex-grow mr-2"
+                    >
+                    <button onclick="sendMessage()" class="btn btn-primary">전송</button>
+                </div>
+            </div>
+            
+            <div class="p-4 text-center">
+                <a href="index.html" class="btn btn-ghost">메인으로 돌아가기</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let conversationContext = [];
+
+        function autoScroll() {
+            const messagesContainer = document.getElementById('chat-messages');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const messagesContainer = document.getElementById('chat-messages');
+            
+            if (!input.value.trim()) return;
+
+            // 사용자 메시지 추가
+            const userMessage = document.createElement('div');
+            userMessage.classList.add('message', 'user-message');
+            userMessage.textContent = input.value;
+            messagesContainer.appendChild(userMessage);
+            autoScroll();
+
+            try {
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer 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'
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-3.5-turbo",
+                        messages: [
+                            {
+                                role: "system", 
+                                content: `당신은 AI-Linker 챗봇입니다. 다음 규칙을 엄격히 따르세요:
+                                1. "대출", "소상공인", "정책자금" 중 하나라도 언급되면 "AI-Linker는 소상공인 정책자금 대출의 자동신청을 지원합니다. 직접대출과 대리대출 중 어떤 내용을 원하시나요?"라고 안내하고 세션을 유지합니다.
+                                2. "신청현황"이 언급되면 "대출 신청 현황을 확인하시려면 신청현황 페이지로 이동하겠습니다."라고 안내합니다.
+                                3. 소상공인 대출과 무관한 대화 시도 시 "AI-Linker에서는 현재 소상공인 대출만 지원하고 있습니다."라는 메시지를 출력하고 세션을 종료합니다.
+                                4. 대출 관련 정보는 공식 웹사이트의 최신 정보를 기반으로 안내합니다.
+                                5. 웹사이트 주소는 답변에 절대 노출하지 마세요.
+                                6. 전문적이고 친절한 톤을 유지하세요.`
+                            },
+                            ...conversationContext,
+                            {role: "user", content: input.value}
+                        ]
+                    })
+                });
+
+                const data = await response.json();
+                const aiResponse = data.choices[0].message.content;
+
+                // AI 메시지 추가
+                const systemMessage = document.createElement('div');
+                systemMessage.classList.add('message', 'system-message');
+                systemMessage.textContent = aiResponse;
+                messagesContainer.appendChild(systemMessage);
+                autoScroll();
+
+                // 대화 컨텍스트 업데이트
+                conversationContext.push(
+                    {role: "user", content: input.value},
+                    {role: "assistant", content: aiResponse}
+                );
+
+                // 대화 컨텍스트 길이 제한
+                if (conversationContext.length > 10) {
+                    conversationContext = conversationContext.slice(-10);
+                }
+
+                // 신청현황 페이지로 이동 로직
+                if (aiResponse.includes('신청현황 페이지로 이동')) {
+                    setTimeout(() => {
+                        window.location.href = 'status.html';
+                    }, 1500);
+                }
+
+            } catch (error) {
+                console.error('API 호출 중 오류:', error);
+                const errorMessage = document.createElement('div');
+                errorMessage.classList.add('message', 'system-message');
+                errorMessage.textContent = '현재 서비스에 문제가 있습니다. 잠시 후 다시 시도해주세요.';
+                messagesContainer.appendChild(errorMessage);
+                autoScroll();
+            }
+
+            // 입력창 초기화
+            input.value = '';
+        }
+
+        // Enter 키로 메시지 전송
+        document.getElementById('message-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // 초기 스크롤
+        autoScroll();
+    </script>
+</body>
+</html>
