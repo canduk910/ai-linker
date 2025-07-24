@@ -1,31 +1,43 @@
 // 파일 경로: api/chat.js
 
-export default async function handler(req, res) {
+export default async function handler(request) {
   // POST 요청이 아니면 거부
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+  if (request.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   try {
-    const userInput = req.body; // 프론트엔드에서 보낸 대화 내용
+    // 프론트엔드에서 보낸 요청 본문을 가져옵니다.
+    const userInput = await request.json();
 
+    // OpenAI API로 요청을 보냅니다.
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // process.env.OPENAI_API_KEY는 Vercel/Netlify에 설정한 환경변수를 가리킵니다.
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}` 
       },
-      body: JSON.stringify(userInput) // 프론트에서 받은 내용을 그대로 전달
+      body: JSON.stringify(userInput)
     });
 
+    // OpenAI API로부터 받은 응답 데이터를 가져옵니다.
     const data = await response.json();
     
-    // 결과를 프론트엔드로 다시 전송
-    res.status(200).json(data);
+    // 결과를 프론트엔드로 다시 전송합니다.
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
+    // 서버 내부 오류 발생 시 처리
     console.error('API 호출 중 오류:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
