@@ -240,7 +240,7 @@
                 // 대출신청서 페이지로 이동 로직
                 if (aiResponse.includes('대출신청서 페이지로 이동')) {
                     setTimeout(() => {
-                        window.location.href = 'apply.html';
+                        openApplyPanel();
                     }, 1500);
                 }
 
@@ -266,6 +266,25 @@
     </script>
     <!-- ===== 드로어 토글 스크립트 ===== -->
     <script>
+      // 드로어 열기 유틸
+      window.openApplyPanel = function() {
+          const drawer   = document.getElementById("apply-drawer");
+          const backdrop = document.getElementById("apply-drawer-backdrop");
+          const iframe   = document.getElementById("apply-iframe");
+        
+          function resolveApplyUrl() {
+            const base = location.pathname.replace(/[^/]+$/, ""); // chatbot.html 기준
+            return `${base}apply.html?embed=1#autofill=auto`;
+          }
+        
+          if (!iframe.src || iframe.src === 'about:blank') {
+            iframe.src = resolveApplyUrl();
+          }
+          drawer.classList.remove("translate-x-full");
+          backdrop.classList.remove("pointer-events-none");
+          backdrop.classList.add("opacity-100");
+        };
+        
       (function(){
         const drawer = document.getElementById("apply-drawer");
         const backdrop = document.getElementById("apply-drawer-backdrop");
