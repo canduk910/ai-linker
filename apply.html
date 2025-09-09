@@ -13,6 +13,7 @@
             background-color: #f4f6f9;
         }
     </style>
+    <script src="/js/schema/loan-application.v1.js"></script>
 </head>
 <body>
     <div class="container mx-auto px-4 py-12">
@@ -20,75 +21,134 @@
             <h1 class="text-4xl font-bold text-blue-800 mb-4">대출 신청서</h1>
             <p class="text-xl text-gray-600">소상공인을 위한 간편 대출 신청</p>
         </div>
-
+        
+        <!-- 자동채움 배너(향후 B단계 Hydrator가 표시/동작 제어) -->
+        <div id="autofill-banner" class="alert alert-info shadow-lg mb-6 hidden">
+            <div>
+                <span class="font-semibold">대화에서 추출한 정보가 있습니다.</span>
+                <span class="ml-1">자동으로 채울까요?</span>
+            </div>
+            <div class="flex gap-2">
+                <button id="autofill-accept" type="button" class="btn btn-sm btn-primary">채우기</button>
+                <button id="autofill-reject" type="button" class="btn btn-sm btn-ghost">건너뛰기</button>
+            </div>
+        </div>
+        
         <form class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-lg">
             <div class="grid md:grid-cols-2 gap-6">
+                <!-- 회사 이름 → business.name -->
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">회사 이름</span>
                     </label>
-                    <input type="text" placeholder="회사명 입력" class="input input-bordered w-full" required />
+                    <input id="businessName" name="businessName"
+                           type="text" placeholder="회사명 입력"
+                           class="input input-bordered w-full" required
+                           data-field="business.name" />
                 </div>
+
+                <!-- 사업자등록번호 → business.regNo -->
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">사업자등록번호</span>
                     </label>
-                    <input type="text" placeholder="사업자등록번호 입력" class="input input-bordered w-full" required />
+                    <input id="businessRegNo" name="businessRegNo"
+                           type="text" inputmode="numeric" autocomplete="off"
+                           placeholder="사업자등록번호 입력"
+                           class="input input-bordered w-full" required
+                           data-field="business.regNo" />
                 </div>
+
+                <!-- 대표자 이름 → borrower.name -->
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">대표자 이름</span>
                     </label>
-                    <input type="text" placeholder="대표자명 입력" class="input input-bordered w-full" required />
+                    <input id="borrowerName" name="borrowerName"
+                           type="text" placeholder="대표자명 입력"
+                           class="input input-bordered w-full" required
+                           data-field="borrower.name" />
                 </div>
+
+                <!-- 연락처 → borrower.phone -->
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">연락처</span>
                     </label>
-                    <input type="tel" placeholder="연락처 입력" class="input input-bordered w-full" required />
+                    <input id="borrowerPhone" name="borrowerPhone"
+                           type="tel" inputmode="tel"
+                           placeholder="연락처 입력"
+                           class="input input-bordered w-full" required
+                           data-field="borrower.phone" />
                 </div>
             </div>
 
+            <!-- 사업장 주소 → business.address -->
             <div class="form-control mt-6">
                 <label class="label">
                     <span class="label-text">사업장 주소</span>
                 </label>
-                <input type="text" placeholder="사업장 주소 입력" class="input input-bordered w-full" required />
+                <input id="businessAddress" name="businessAddress"
+                       type="text" placeholder="사업장 주소 입력"
+                       class="input input-bordered w-full" required
+                       data-field="business.address" />
             </div>
 
             <div class="grid md:grid-cols-3 gap-6 mt-6">
+                <!-- 업종 → business.industry -->
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">업종</span>
                     </label>
-                    <input type="text" placeholder="업종 입력" class="input input-bordered w-full" required />
+                    <input id="businessIndustry" name="businessIndustry"
+                           type="text" placeholder="업종 입력"
+                           class="input input-bordered w-full" required
+                           data-field="business.industry" />
                 </div>
+
+                <!-- 직원 수 (스키마 확장 권장: business.employeeCount) -->
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">직원 수</span>
                     </label>
-                    <input type="number" placeholder="직원 수 입력" class="input input-bordered w-full" required />
+                    <input id="employeeCount" name="employeeCount"
+                           type="number" placeholder="직원 수 입력"
+                           class="input input-bordered w-full" required
+                           data-field="business.employeeCount" />
                 </div>
+
+                <!-- 연간매출 (스키마 확장: business.annualSalesKRW) -->
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">연간매출</span>
                     </label>
-                    <input type="number" placeholder="연간매출 입력" class="input input-bordered w-full" required />
+                    <input id="annualSales" name="annualSales"
+                           type="number" placeholder="연간매출 입력"
+                           class="input input-bordered w-full" required
+                           data-field="business.annualSalesKRW" />
                 </div>
             </div>
 
             <div class="grid md:grid-cols-2 gap-6 mt-6">
+                <!-- 요청 대출금액 → loan.desiredAmountKRW -->
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">요청 대출금액</span>
                     </label>
-                    <input type="number" placeholder="대출금액 입력" class="input input-bordered w-full" required />
+                    <input id="loanAmount" name="loanAmount"
+                           type="number" placeholder="대출금액 입력"
+                           class="input input-bordered w-full" required
+                           data-field="loan.desiredAmountKRW" />
                 </div>
+
+                <!-- 대출목적 → loan.purpose -->
                 <div class="form-control">
                     <label class="label">
                         <span class="label-text">대출목적</span>
                     </label>
-                    <select class="select select-bordered" required>
+                    <select id="loanPurpose" name="loanPurpose"
+                            class="select select-bordered" required
+                            data-field="loan.purpose">
                         <option disabled selected>대출목적 선택</option>
                         <option>운전자금</option>
                         <option>시설자금</option>
@@ -98,11 +158,15 @@
                 </div>
             </div>
 
+            <!-- 사업설명 → business.description (확장) -->
             <div class="form-control mt-6">
                 <label class="label">
                     <span class="label-text">사업설명</span>
                 </label>
-                <textarea class="textarea textarea-bordered h-24" placeholder="사업에 대한 간략한 설명을 입력해주세요" required></textarea>
+                <textarea id="businessDesc" name="businessDesc"
+                          class="textarea textarea-bordered h-24"
+                          placeholder="사업에 대한 간략한 설명을 입력해주세요" required
+                          data-field="business.description"></textarea>
             </div>
 
             <div class="form-control mt-6">
