@@ -123,9 +123,9 @@
             </div>
             
             <div class="p-4 text-center">
-                <a href="index.html" class="btn btn-ghost">메인으로 돌아가기</a>
-                <a href="/apply.html" target="_blank" rel="noopener" class="btn btn-sm">신청서 새 탭</a>
-                <button id="toggle-apply" class="btn btn-sm btn-primary">옆에 열기</button>
+                <a href="index.html" class="btn btn-sm">메인으로 돌아가기</a>
+                <a href="/apply.html" target="_blank" rel="noopener" class="btn btn-sm"> 신청서 새 탭 열기 </a>
+                <button id="toggle-apply" class="btn btn-sm btn-primary"> 신청서 옆에 열기</button>
     </div>
             </div>
         </div>
@@ -173,6 +173,11 @@
             messagesContainer.appendChild(userMessage);
             autoScroll();
 
+            input_text = input.value;
+            
+            // 입력창 초기화
+            input.value = '';
+
             // 🚨 수정된 부분 시작
             try {
                 // 요청 URL을 우리 서버리스 함수 주소('/api/chat')로 변경
@@ -198,7 +203,7 @@
                                 7. 전문적이고 친절한 톤을 유지하세요.`
                             },
                             ...conversationContext,
-                            {role: "user", content: input.value}
+                            {role: "user", content: input_text}
                         ]
                     })
                 });
@@ -216,7 +221,7 @@
 
                 // 대화 컨텍스트 업데이트
                 conversationContext.push(
-                    {role: "user", content: input.value},
+                    {role: "user", content: input_text},
                     {role: "assistant", content: aiResponse}
                 );
 
@@ -247,9 +252,6 @@
                 messagesContainer.appendChild(errorMessage);
                 autoScroll();
             }
-
-            // 입력창 초기화
-            input.value = '';
         }
 
         // Enter 키로 메시지 전송
