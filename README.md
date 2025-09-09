@@ -1,12 +1,12 @@
 # AI-Linker 챗봇 - OpenAI API 통합
 
 ## 개요
-AI-Linker는 공식 기관용 AI 챗봇 서비스로, OpenAI GPT 모델을 기반으로 한 지능형 응답 시스템입니다. 보안이 강화되어 안전하고 신뢰할 수 있는 대화 서비스를 제공합니다.
+AI-Linker는 공식 기관용 AI 챗봇 서비스로, OpenAI GPT 모델을 기반으로 한 지능형 응답 시스템입니다.
 
 ## 주요 기능
 
 ### 🤖 OpenAI API 통합
-- GPT-3.5-turbo 모델 기반 지능형 응답
+- GPT-5 모델 기반 지능형 응답
 - 컨텍스트 유지 대화 지원
 - 폴백 응답 시스템으로 안정성 보장
 
@@ -87,7 +87,7 @@ config.setApiKey('sk-your-api-key');
 const config = window.chatBotManager.configManager;
 config.updateConfig({
     openai: {
-        model: 'gpt-4',
+        model: 'gpt-5',
         maxTokens: 2000,
         temperature: 0.8
     }
@@ -174,11 +174,6 @@ HTML 파일의 `data-theme` 속성을 수정:
 window.chatBotManager.errorHandler.logLevel = 'debug';
 ```
 
-## 라이선스
-이 프로젝트는 MIT 라이선스 하에 배포됩니다.
-
-## 지원
-- 이메일: support@ai-linker.kr
 - 전화: 1588-0000 (평일 09:00-18:00)
 
 ## 업데이트 내역
