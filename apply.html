@@ -179,5 +179,22 @@
         </div>
     </div>
     <script type="module" src="/js/hydrator.js"></script>
+    <!-- apply.html 맨 아래에 추가 -->
+    <script>
+      const qs = new URLSearchParams(location.search);
+      const isEmbed = qs.get("embed") === "1";
+      if (isEmbed) {
+        // 필요하면 상단 네비/여백을 숨기거나 축소
+        document.querySelector(".navbar")?.classList.add("hidden");
+        document.body.classList.add("p-2");
+      }
+      // 해시로 자동채움 동작 제어: #autofill=auto → 자동 '채우기' 클릭
+      const hash = new URLSearchParams(location.hash.replace(/^#/, ""));
+      if (hash.get("autofill") === "auto") {
+        addEventListener("DOMContentLoaded", () => {
+          setTimeout(() => document.getElementById("autofill-accept")?.click(), 400);
+        });
+      }
+    </script>
 </body>
 </html>
