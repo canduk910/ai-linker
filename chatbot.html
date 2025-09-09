@@ -155,8 +155,12 @@
               sandbox="allow-forms allow-scripts allow-same-origin"></iframe>
     </aside>
     <script>
-        // 이전 스크립트 코드 그대로 유지 (변경 없음)
-        let conversationContext = [];
+    // 대화 히스토리: 전역(탭 내 유지) + 로컬스토리지 복원
+    const CC_KEY = "aiLinker.chat.ctx.v1";
+    window.conversationContext = (() => {
+      try { return JSON.parse(localStorage.getItem(CC_KEY) || "[]"); } catch { return []; }
+    })();
+    function saveCtx(){ try { localStorage.setItem(CC_KEY, JSON.stringify(window.conversationContext)); } catch {} }
 
         function autoScroll() {
             const messagesContainer = document.getElementById('chat-messages');
@@ -209,7 +213,7 @@
                                 6. 웹사이트 주소는 답변에 절대 노출하지 마세요.
                                 7. 전문적이고 친절한 톤을 유지하세요.`
                             },
-                            ...conversationContext,
+                            ...window.conversationContext,
                             {role: "user", content: input_text}
                         ]
                     })
@@ -217,7 +221,10 @@
                 // 🚨 수정된 부분 끝
 
                 const data = await response.json();
-                const aiResponse = data.choices[0].message.content;
+                const aiResponse =
+                  (data?.choices?.[0]?.message?.content)
+                  ?? (data?.output_text)  // Responses API 형태 대응
+                  ?? "";
 
                 // AI 메시지 추가
                 const systemMessage = document.createElement('div');
@@ -227,15 +234,17 @@
                 autoScroll();
 
                 // 대화 컨텍스트 업데이트
-                conversationContext.push(
+                window.conversationContext.push(
                     {role: "user", content: input_text},
                     {role: "assistant", content: aiResponse}
                 );
 
-                // 대화 컨텍스트 길이 제한
-                if (conversationContext.length > 10) {
-                    conversationContext = conversationContext.slice(-10);
+                // 길이 제한(최근 10개 메시지 = 5쌍) — 배열 교체 대신 in-place로 잘라서 참조 유지
+                const MAX = 10; // 필요시 20(=10쌍)로 늘리세요
+                if (window.conversationContext.length > MAX) {
+                  window.conversationContext.splice(0, window.conversationContext.length - MAX);
                 }
+                saveCtx();
 
                 // 신청현황 페이지로 이동 로직
                 if (aiResponse.includes('신청현황 페이지로 이동')) {
