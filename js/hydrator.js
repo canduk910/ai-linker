@@ -46,6 +46,13 @@
   }
 
   function shouldFill(el, path, val, conf) {
+    // 비즈니스명 이상치 가드: 의문문/명령문/긴 문장 제외
+    if (path === "business.name" && typeof val === "string") {
+      const s = val.trim();
+      const looksSentence = /[?]|(무엇|뭐|인가요|해주세요|해줘|있으신가요)/.test(s);
+      if (looksSentence || s.length > 40) return false;
+    }    
+
     const cur = (el.tagName === "SELECT") ? el.value : el.value?.trim();
     const empty = !cur;
     if (val == null || val === "") return false;
