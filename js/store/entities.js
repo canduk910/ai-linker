@@ -6,14 +6,14 @@ export function setPendingEntities(entities, ttlSec = 15 * 60) {
   if (!entities || typeof entities !== "object") return;
   const expiresAt = Date.now() + ttlSec * 1000;
   const payload = { data: entities, expiresAt };
-  sessionStorage.setItem(KEY, JSON.stringify(payload));
+  localStorage.setItem(KEY, JSON.stringify(payload));
   // 새 엔터티 알림(다른 탭/페이지도 받을 수 있게)
   dispatchEvent(new CustomEvent("entities:ready"));
 }
 
 export function getPendingEntities() {
   try {
-    const raw = sessionStorage.getItem(KEY);
+    const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const { data, expiresAt } = JSON.parse(raw);
     if (!expiresAt || Date.now() > expiresAt) {
@@ -27,7 +27,7 @@ export function getPendingEntities() {
 }
 
 export function clearPendingEntities() {
-  sessionStorage.removeItem(KEY);
+  localStorage.removeItem(KEY);
   dispatchEvent(new CustomEvent("entities:cleared"));
 }
 
