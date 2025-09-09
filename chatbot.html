@@ -284,54 +284,95 @@
     </template>
     
     <!-- ===== 드로어 토글 스크립트 ===== -->
-    <script>
-      // 드로어 열기 유틸
-      window.openApplyPanel = function() {
-          const drawer   = document.getElementById("apply-drawer");
-          const backdrop = document.getElementById("apply-drawer-backdrop");
-          const iframe   = document.getElementById("apply-iframe");
-        
-          function resolveApplyUrl() {
-            const base = location.pathname.replace(/[^/]+$/, ""); // chatbot.html 기준
-            return `${base}apply.html?embed=1#autofill=auto`;
-          }
-        
-          if (!iframe.src || iframe.src === 'about:blank') {
-            iframe.src = resolveApplyUrl();
-          }
-          drawer.classList.remove("translate-x-full");
-          backdrop.classList.remove("pointer-events-none");
-          backdrop.classList.add("opacity-100");
-        };
-        
-      (function(){
-        const drawer = document.getElementById("apply-drawer");
-        const backdrop = document.getElementById("apply-drawer-backdrop");
-        const iframe = document.getElementById("apply-iframe");
-        const openBtn = document.getElementById("toggle-apply");
-        const closeBtn = document.getElementById("close-apply");
+<script>
+  // 공용 로더: URL로 시도 → 실패하면 srcdoc로 주입 → 최후엔 새 탭
+  function openApplyPanel() {
+    const drawer   = document.getElementById("apply-drawer");
+    const backdrop = document.getElementById("apply-drawer-backdrop");
+    const iframe   = document.getElementById("apply-iframe");
 
-        function openDrawer() {
-          if (!iframe.src) {
-            // 임베드 모드 + 자동채움(배너 자동 클릭) 파라미터
-            iframe.src = "/apply.html?embed=1#autofill=auto";
-          }
-          drawer.classList.remove("translate-x-full");
-          backdrop.classList.remove("pointer-events-none");
-          backdrop.classList.add("opacity-100");
-        }
-        function closeDrawer() {
-          drawer.classList.add("translate-x-full");
-          backdrop.classList.add("pointer-events-none");
-          backdrop.classList.remove("opacity-100");
-        }
-        openBtn?.addEventListener("click", openDrawer);
-        closeBtn?.addEventListener("click", closeDrawer);
-        backdrop?.addEventListener("click", closeDrawer);
-        // ESC로 닫기
-        window.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeDrawer(); });
-      })();
-    </script>
+    // 1) 절대경로로 안전하게 생성 (서브폴더/상대경로 이슈 방지)
+    const url = new URL('apply.html', location.origin);
+    url.search = 'embed=1';
+    url.hash   = 'autofill=auto';
+
+    // 2) 로드/타임아웃/에러 핸들링
+    let done = false;
+    const timeout = setTimeout(() => {
+      if (!done) fallbackToSrcdoc();       // 2초 내 로드 안되면 폴백
+    }, 2000);
+
+    iframe.onload = () => { done = true; clearTimeout(timeout); };
+    iframe.onerror = () => { done = true; clearTimeout(timeout); fallbackToSrcdoc(); };
+
+    // 3) 먼저 src로 시도
+    iframe.src = url.toString();
+
+    // 4) 패널 열기
+    drawer.classList.remove("translate-x-full");
+    backdrop.classList.remove("pointer-events-none");
+    backdrop.classList.add("opacity-100");
+
+    // ---- 폴백: apply.html을 가져와 srcdoc로 주입 (CSP/XFO/경로문제 회피) ----
+    async function fallbackToSrcdoc() {
+      try {
+        const res = await fetch(new URL('apply.html', location.origin), { credentials: 'same-origin' });
+        if (!res.ok) throw new Error('fetch ' + res.status);
+        let html = await res.text();
+
+        // <base> 삽입해서 내부의 상대경로(JS/CSS)도 정상 로드되게 함
+        html = html.replace(
+          "/<head([^>]*)>/i",
+          "<head$1><base href="${location.origin}/">"
+        );
+
+        // 임베드 모드/자동채움 트리거 스크립트 주입 (query/hash가 없으므로)
+        html = html.replace(
+          "/<\/body>\s*<\/html>\s*$/i",
+          "<script>
+             document.addEventListener('DOMContentLoaded', function() {
+               // 임베드 모드 UI 축소
+               document.querySelector('.navbar')?.classList.add('hidden');
+               // 자동채움 배너가 있다면 자동 승인 시도
+               setTimeout(function() {
+                 document.getElementById('autofill-accept')?.click();
+               }, 400);
+             });
+           </script></body></html>"
+        );
+
+        // sandbox 제약이 강하면 removeAttribute로 테스트 가능 (필요시 주석 해제)
+        // iframe.removeAttribute('sandbox');
+
+        iframe.srcdoc = html;
+      } catch (e) {
+        // 그래도 실패하면 새 탭으로
+        window.open('/apply.html', '_blank', 'noopener');
+      }
+    }
+  }
+
+  (function(){
+    const drawer   = document.getElementById("apply-drawer");
+    const backdrop = document.getElementById("apply-drawer-backdrop");
+    const iframe   = document.getElementById("apply-iframe");
+    const openBtn  = document.getElementById("toggle-apply");
+    const closeBtn = document.getElementById("close-apply");
+
+    function closeDrawer() {
+      drawer.classList.add("translate-x-full");
+      backdrop.classList.add("pointer-events-none");
+      backdrop.classList.remove("opacity-100");
+      // 다음에 다시 열 때 새로 로드하고 싶으면 아래 주석을 해제
+      // iframe.src = 'about:blank'; iframe.removeAttribute('srcdoc');
+    }
+
+    openBtn?.addEventListener("click", openApplyPanel);
+    closeBtn?.addEventListener("click", closeDrawer);
+    backdrop?.addEventListener("click", closeDrawer);
+    window.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeDrawer(); });
+  })();
+</script>
     <script>
     // === 채팅 리스트 컨테이너 추적 ===
     const CHAT_LIST = document.getElementById('chat-messages')
