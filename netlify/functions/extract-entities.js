@@ -1,96 +1,119 @@
-export default async function handler(request) {
-  if (request.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method Not Allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json" },
-    });
+// 경로: /.netlify/functions/extract-entities
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Methods": "POST,OPTIONS",
+  "Content-Type": "application/json; charset=utf-8",
+};
+
+exports.handler = async (event) => {
+  // CORS preflight
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 200, headers: CORS, body: "" };
+  }
+  if (event.httpMethod !== "POST") {
+    return {
+      statusCode: 405,
+      headers: CORS,
+      body: JSON.stringify({ error: "Method Not Allowed" }),
+    };
   }
 
   try {
-    const { messages = [] } = await request.json();
-    const text = messages.map(m => m?.content || "").join("\n");
+    const { messages = [] } = JSON.parse(event.body || "{}");
+    const text = messages.map((m) => m?.content || "").join("\n");
 
     // ===== 규칙 기반 추출 =====
-    const phone = (text.match(/\b01[016789]-?\d{3,4}-?\d{4}\b/) || [])[0] || null;
-    const email = (text.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i) || [])[0] || null;
+    const phone =
+      (text.match(/\b01[016789]-?\d{3,4}-?\d{4}\b/) || [])[0] || null;
+    const email =
+      (text.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i) || [])[0] || null;
+
     const bizRegRaw = (text.match(/\b\d{3}-?\d{2}-?\d{5}\b/) || [])[0] || null;
     const bizRegNo = bizRegRaw ? bizRegRaw.replace(/[^0-9]/g, "") : null;
 
-    const amount = parseKRW(text); // 금액(원) 숫자로
-    const termMonths = parseTermMonths(text); // 대출기간(개월)
-    const purpose = pickOne(text, ["운전자금","시설자금","창업자금","기타"]);
+    const amount = parseKRW(text); // 금액(원)
+    const termMonths = parseTermMonths(text); // 기간(개월)
+    const purpose = pickOne(text, ["운전자금", "시설자금", "창업자금", "기타"]);
 
-    // 이름 추정(아주 가벼운 휴리스틱, 필요시 보정)
-    const name = guessKoreanName(text);
+    const name = guessKoreanName(text); // 대표자 이름(휴리스틱)
+    const bizName = guessBizName(text); // 상호(휴리스틱)
 
-    // 상호 추정(“상호/회사/법인/가게/점” 키워드 근처)
-    const bizName = guessBizName(text);
-
-    // ===== confidence 대략치 =====
+    // ===== confidence 계산 =====
     const confidence = {};
     if (phone) confidence["borrower.phone"] = 0.95;
     if (email) confidence["borrower.email"] = 0.9;
     if (bizRegNo) confidence["business.regNo"] = 0.85;
     if (amount != null) confidence["loan.desiredAmountKRW"] = 0.8;
+    if (termMonths != null) confidence["loan.desiredTermMonths"] = 0.6;
     if (purpose) confidence["loan.purpose"] = 0.8;
     if (name) confidence["borrower.name"] = 0.7;
     if (bizName) confidence["business.name"] = 0.7;
 
+    // 사업자번호 체크섬이 틀리면 신뢰도 보정
+    if (bizRegNo && !isValidBizRegNo(bizRegNo)) {
+      confidence["business.regNo"] = Math.min(
+        confidence["business.regNo"] || 0.6,
+        0.3
+      );
+    }
+
     const out = {
       borrower: { name, phone, email },
       business: { name: bizName, regNo: bizRegNo },
-      loan: { purpose, desiredAmountKRW: amount, desiredTermMonths: termMonths },
-      metadata: { source: "chat", updatedAt: new Date().toISOString(), confidence }
+      loan: {
+        purpose,
+        desiredAmountKRW: amount,
+        desiredTermMonths: termMonths,
+      },
+      metadata: {
+        source: "chat",
+        updatedAt: new Date().toISOString(),
+        confidence,
+      },
     };
 
-    return new Response(JSON.stringify(out), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-
-  } catch (error) {
-    console.error("extract-entities error:", error);
-    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return { statusCode: 200, headers: CORS, body: JSON.stringify(out) };
+  } catch (err) {
+    console.error("extract-entities error:", err);
+    return {
+      statusCode: 500,
+      headers: CORS,
+      body: JSON.stringify({ error: "Internal Server Error" }),
+    };
   }
-}
+};
 
-// ====== 간단 파서 유틸 ======
+/* ================== 유틸 함수들 ================== */
+
+// "50,000,000원", "5천만원", "2억 3천만 원" 등 파싱 → 정수(원)
 function parseKRW(text) {
-  // 숫자 (“50,000,000원”) 우선
   const numMatch = text.match(/([\d,]+)\s*원/);
   if (numMatch) {
     const n = Number(numMatch[1].replace(/,/g, ""));
     if (!Number.isNaN(n)) return n;
   }
-  // 한글 단위 (“5천만원”, “2억 3천만 원” 등)
-  const unit = normalizeKrwWords(text);
-  if (unit != null) return unit;
+  const word = normalizeKrwWords(text);
+  if (word != null) return word;
   return null;
 }
 
 function normalizeKrwWords(t) {
-  // 아주 단순 구현: 억/천만/백만/만 조합
-  const m = t.match(/(\d+(?:\.\d+)?)\s*억/) || [];
-  const eok = m[1] ? Number(m[1]) : 0;
-  const cheonman = (t.match(/(\d+)\s*천만/) || [])[1] ? Number((t.match(/(\d+)\s*천만/) || [])[1]) : 0;
-  const baegman = (t.match(/(\d+)\s*백만/) || [])[1] ? Number((t.match(/(\d+)\s*백만/) || [])[1]) : 0;
-  const man = (t.match(/(\d+)\s*만[^\d]?원?/) || [])[1] ? Number((t.match(/(\d+)\s*만[^\d]?원?/) || [])[1]) : 0;
-  const cheonmanFromChun = (t.match(/(\d+)\s*천\s*만/) || [])[1] ? Number((t.match(/(\d+)\s*천\s*만/) || [])[1]) : 0;
+  // 억/천만/백만/만 조합 간단 처리
+  const eok = numOf((t.match(/(\d+(?:\.\d+)?)\s*억/) || [])[1]);
+  const cheonmanA = numOf((t.match(/(\d+)\s*천만/) || [])[1]);
+  const cheonmanB = numOf((t.match(/(\d+)\s*천\s*만/) || [])[1]);
+  const baegman = numOf((t.match(/(\d+)\s*백만/) || [])[1]);
+  const man = numOf((t.match(/(\d+)\s*만[^\d]?원?/) || [])[1]);
 
-  if (eok || cheonman || baegman || man || cheonmanFromChun) {
-    // 억 = 100,000,000
-    let total = eok * 100_000_000;
-    total += (cheonman + cheonmanFromChun) * 10_000_000;
+  if (eok || cheonmanA || cheonmanB || baegman || man) {
+    let total = 0;
+    total += eok * 100_000_000;
+    total += (cheonmanA + cheonmanB) * 10_000_000;
     total += baegman * 1_000_000;
     total += man * 10_000;
     return total || null;
   }
-  // “5천만원”
-  const m2 = t.match(/(\d+)\s*천\s*만\s*원?/);
-  if (m2) return Number(m2[1]) * 10_000_000;
   return null;
 }
 
@@ -106,17 +129,31 @@ function pickOne(text, arr) {
 }
 
 function guessKoreanName(text) {
-  // 매우 단순: “대표(자) 이름/성함/명” 주변 2~3글자 추출
-  const r = text.match(/대표[자]?\s*(?:이름|성함|명)[:\s]*([가-힣]{2,4})/);
-  if (r) return r[1];
-  // “저는 OOO입니다”
-  const r2 = text.match(/저는\s*([가-힣]{2,4})입니다/);
-  if (r2) return r2[1];
-  return null;
+  // “대표자 이름: 홍길동”, “대표 이름 홍길동”, “저는 홍길동입니다” 등
+  const r =
+    text.match(/대표[자]?\s*(?:이름|성함|명)\s*[:\s]*([가-힣]{2,4})/) ||
+    text.match(/저는\s*([가-힣]{2,4})입니다/);
+  return r ? r[1] : null;
 }
 
 function guessBizName(text) {
+  // “상호: 한빛상사”, “회사 한빛상사”, “가게 한빛분식”
   const r = text.match(/(?:상호|회사|법인|가게|점)\s*[:\s]*([^\n]{1,20})/);
-  if (r) return r[1].trim();
-  return null;
+  return r ? r[1].trim() : null;
+}
+
+// 사업자등록번호(10자리) 체크섬
+function isValidBizRegNo(raw) {
+  const d = String(raw).replace(/[^0-9]/g, "");
+  if (d.length !== 10) return false;
+  const w = [1, 3, 7, 1, 3, 7, 1, 3, 5];
+  const sum =
+    w.reduce((acc, wi, i) => acc + parseInt(d[i], 10) * wi, 0) +
+    Math.floor((parseInt(d[8], 10) * 5) / 10);
+  return ((10 - (sum % 10)) % 10) === parseInt(d[9], 10);
+}
+
+function numOf(s) {
+  const n = Number(s);
+  return Number.isFinite(n) ? n : 0;
 }
