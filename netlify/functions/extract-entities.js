@@ -37,7 +37,7 @@ exports.handler = async (event) => {
     const purpose = pickOne(text, ["운전자금", "시설자금", "창업자금", "기타"]);
 
     const name = guessKoreanName(text); // 대표자 이름(휴리스틱)
-    const bizName = guessBizName(text); // 상호(휴리스틱)
+    const bizName = extractBizName(messages) || guessBizNameSafe(text);
 
     // ===== confidence 계산 =====
     const confidence = {};
@@ -48,7 +48,7 @@ exports.handler = async (event) => {
     if (termMonths != null) confidence["loan.desiredTermMonths"] = 0.6;
     if (purpose) confidence["loan.purpose"] = 0.8;
     if (name) confidence["borrower.name"] = 0.7;
-    if (bizName) confidence["business.name"] = 0.7;
+    if (bizName) confidence["business.name"] = Math.max(confidence["business.name"] || 0.8, 0.8);
 
     // 사업자번호 체크섬이 틀리면 신뢰도 보정
     if (bizRegNo && !isValidBizRegNo(bizRegNo)) {
@@ -136,10 +136,40 @@ function guessKoreanName(text) {
   return r ? r[1] : null;
 }
 
-function guessBizName(text) {
-  // “상호: 한빛상사”, “회사 한빛상사”, “가게 한빛분식”
-  const r = text.match(/(?:상호|회사|법인|가게|점)\s*[:\s]*([^\n]{1,20})/);
-  return r ? r[1].trim() : null;
+// === 개선: 최근 메시지부터, '라벨 + 구분자'가 있는 구조만 선호, 문장/의문문은 제외
+function extractBizName(messages = []) {
+  const LABEL = /(?:사업자명|상호명?|회사명|법인명|점명)\s*[:\-]\s*([^\n#•\-]{1,40})/i;
+  const CLEAN = (s) =>
+    String(s || "")
+      .replace(/\*\*/g, "")            // markdown bold
+      .replace(/^[\s,:\-–—]+|[\s,:\-–—]+$/g, "")
+      .replace(/[^\w\s·().&가-힣\-]/g, "") // 허용 문자만
+      .trim();
+  const BAD = /(무엇|뭐|인가요|인가|요\?|있나요|\?|주세요|해줘|작성할래)/;
+
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const t = messages[i]?.content || "";
+    const m = t.match(LABEL);
+    if (!m) continue;
+    let cand = CLEAN(m[1]);
+    if (!cand || BAD.test(cand)) continue;
+    // 너무 짧거나 긴 값 제거
+    if (cand.length < 2 || cand.length > 40) continue;
+    // 보편적 접미어 보정(선택)
+    cand = cand.replace(/\s+주식회사$/,"주식회사");
+    return cand;
+  }
+  return null;
+}
+
+// 레거시 안전 버전: '회사' 단독 키워드는 금지(회사명/상호/사업자명만 허용)
+function guessBizNameSafe(text) {
+  const r = text.match(/(?:사업자명|상호명?|회사명|법인명|점명)\s*[:\-\s]\s*([^\n#•\-]{1,40})/i);
+  if (!r) return null;
+  const val = r[1].trim();
+  // 의문문/명령문 제거
+  if (/[?]|(무엇|뭐|인가요|인가|해주세요|해줘)/.test(val)) return null;
+  return val.replace(/\*\*/g,"").replace(/^[\s,:\-–—]+|[\s,:\-–—]+$/g,"");
 }
 
 // 사업자등록번호(10자리) 체크섬
