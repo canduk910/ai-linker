@@ -195,7 +195,8 @@
                     },
                     // OpenAI에 보낼 전체 요청 본문을 body에 담아 전송
                     body: JSON.stringify({
-                        model: "ft:gpt-4.1-2025-04-14:koscom:finance:Bx9vf0hL",
+                        // model: "ft:gpt-4.1-2025-04-14:koscom:finance:Bx9vf0hL",
+                        model: "gpt-5-mini",
                         messages: [
                             {
                                 role: "system", 
@@ -278,7 +279,7 @@
       <div class="chat chat-start" data-typing="1">
         <div class="chat-bubble bg-base-200 text-base-content flex items-center gap-2">
           <span class="loading loading-dots loading-sm"></span>
-          <span>답변을 준비 중…</span>
+          <span> AI-Linker가 답을 찾는 중… </span>
         </div>
       </div>
     </template>
