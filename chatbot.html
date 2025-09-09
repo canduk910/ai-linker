@@ -127,7 +127,33 @@
             </div>
         </div>
     </div>
+    <!-- ===== 우측 상단 툴바: 신청서 새 탭 / 옆 패널 열기 ===== -->
+    <div class="fixed top-3 right-3 z-40 flex gap-2">
+      <a href="/apply.html" target="_blank" rel="noopener" class="btn btn-sm">신청서 새 탭</a>
+      <button id="toggle-apply" class="btn btn-sm btn-primary">옆에 열기</button>
+    </div>
 
+    <!-- ===== 우측 드로어(오버레이) ===== -->
+    <div id="apply-drawer-backdrop"
+         class="fixed inset-0 bg-black/30 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity z-40"></div>
+
+    <aside id="apply-drawer"
+           class="fixed top-0 right-0 h-dvh w-full md:w-[560px] bg-base-100 border-l shadow-2xl
+                  translate-x-full transition-transform duration-300 z-50 flex flex-col">
+      <div class="px-4 py-3 border-b flex items-center justify-between">
+        <h3 class="font-semibold text-base">대출 신청서</h3>
+        <div class="flex gap-2">
+          <a href="/apply.html" target="_blank" rel="noopener" class="btn btn-xs">새 탭</a>
+          <button id="close-apply" class="btn btn-xs btn-ghost">닫기</button>
+        </div>
+      </div>
+      <iframe id="apply-iframe"
+              class="w-full flex-1"
+              src=""
+              loading="lazy"
+              referrerpolicy="no-referrer"
+              sandbox="allow-forms allow-scripts allow-same-origin"></iframe>
+    </aside>
     <script>
         // 이전 스크립트 코드 그대로 유지 (변경 없음)
         let conversationContext = [];
@@ -161,7 +187,7 @@
                     },
                     // OpenAI에 보낼 전체 요청 본문을 body에 담아 전송
                     body: JSON.stringify({
-                        model: "gpt-4o",
+                        model: "gpt-5-mini",
                         messages: [
                             {
                                 role: "system", 
@@ -238,6 +264,36 @@
 
         // 초기 스크롤
         autoScroll();
+    </script>
+    <!-- ===== 드로어 토글 스크립트 ===== -->
+    <script>
+      (function(){
+        const drawer = document.getElementById("apply-drawer");
+        const backdrop = document.getElementById("apply-drawer-backdrop");
+        const iframe = document.getElementById("apply-iframe");
+        const openBtn = document.getElementById("toggle-apply");
+        const closeBtn = document.getElementById("close-apply");
+
+        function openDrawer() {
+          if (!iframe.src) {
+            // 임베드 모드 + 자동채움(배너 자동 클릭) 파라미터
+            iframe.src = "/apply.html?embed=1#autofill=auto";
+          }
+          drawer.classList.remove("translate-x-full");
+          backdrop.classList.remove("pointer-events-none");
+          backdrop.classList.add("opacity-100");
+        }
+        function closeDrawer() {
+          drawer.classList.add("translate-x-full");
+          backdrop.classList.add("pointer-events-none");
+          backdrop.classList.remove("opacity-100");
+        }
+        openBtn?.addEventListener("click", openDrawer);
+        closeBtn?.addEventListener("click", closeDrawer);
+        backdrop?.addEventListener("click", closeDrawer);
+        // ESC로 닫기
+        window.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeDrawer(); });
+      })();
     </script>
 </body>
 </html>
