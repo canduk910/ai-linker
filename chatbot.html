@@ -359,6 +359,28 @@
         window.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeDrawer(); });
       })();
     </script>
+    <!-- ===== 신청서 핸드셰이크 리스너: iframe이 준비되면 엔터티를 즉시 전송 ===== -->
+    <script>
+      (function () {
+        window.addEventListener("message", (e) => {
+          // 동일 오리진만 허용(보안)
+          if (e.origin !== location.origin) return;
+          const msg = e.data || {};
+          if (msg.type === "AI_LINKER_APPLY_READY") {
+            try {
+              const raw = localStorage.getItem("aiLinker.pendingEntities.v1");
+              const payload = raw ? JSON.parse(raw).data : null;
+              if (payload) {
+                // 자식(신청서 iframe)으로 엔터티 즉시 전달
+                e.source.postMessage({ type: "AI_LINKER_ENTITIES", payload }, e.origin);
+              }
+            } catch {}
+          }
+        });
+      })();
+    </script>
+
+    
     <script>
     // === 채팅 리스트 컨테이너 추적 ===
     const CHAT_LIST = document.getElementById('chat-messages')
