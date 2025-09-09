@@ -130,6 +130,9 @@
             </div>
         </div>
     </div>
+
+
+    
     <!-- ===== 우측 드로어(오버레이) ===== -->
     <div id="apply-drawer-backdrop"
          class="fixed inset-0 bg-black/30 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity z-40"></div>
@@ -177,6 +180,9 @@
             
             // 입력창 초기화
             input.value = '';
+
+            // ✅ 인디케이터: 250ms 후에 뜨도록 예약
+            AI_LINKER_TYPING.defer(250);
 
             // 🚨 수정된 부분 시작
             try {
@@ -251,7 +257,10 @@
                 errorMessage.textContent = '현재 서비스에 문제가 있습니다. 잠시 후 다시 시도해주세요.';
                 messagesContainer.appendChild(errorMessage);
                 autoScroll();
-            }
+            }finally {
+                // ✅ 응답 완료 → 인디케이터 닫기
+                AI_LINKER_TYPING.done();
+              }
         }
 
         // Enter 키로 메시지 전송
@@ -264,6 +273,16 @@
         // 초기 스크롤
         autoScroll();
     </script>
+    
+    <template id="tpl-typing">
+      <div class="chat chat-start" data-typing="1">
+        <div class="chat-bubble bg-base-200 text-base-content flex items-center gap-2">
+          <span class="loading loading-dots loading-sm"></span>
+          <span>답변을 준비 중…</span>
+        </div>
+      </div>
+    </template>
+    
     <!-- ===== 드로어 토글 스크립트 ===== -->
     <script>
       // 드로어 열기 유틸
@@ -313,5 +332,49 @@
         window.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeDrawer(); });
       })();
     </script>
+    <script>
+    // === 채팅 리스트 컨테이너 추적 ===
+    const CHAT_LIST = document.getElementById('chat-messages')
+      || document.getElementById('chat-list')
+      || document.querySelector('[data-chat-list]')
+      || document.querySelector('.chat-list')
+      || document.body;
+    
+    // === 인디케이터 유틸 ===
+    (function(global){
+      let node = null, timer = null, inflight = 0;
+    
+      function ensureTemplate() {
+        const tpl = document.getElementById('tpl-typing');
+        if (!tpl) {
+          console.warn('[typing] #tpl-typing not found');
+          return null;
+        }
+        return tpl;
+      }
+    
+      function showNow() {
+        if (node) return;
+        const tpl = ensureTemplate(); if (!tpl) return;
+        node = tpl.content.firstElementChild.cloneNode(true);
+        CHAT_LIST.appendChild(node);
+        node.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    
+      function hideNow() {
+        clearTimeout(timer);
+        if (node) { node.remove(); node = null; }
+      }
+    
+      global.AI_LINKER_TYPING = {
+        // 250ms 이상 걸릴 때만 표시(깜빡임 방지)
+        defer(delay = 250){ clearTimeout(timer); timer = setTimeout(showNow, delay); inflight++; },
+        done(){ inflight = Math.max(0, inflight - 1); if (inflight === 0) hideNow(); },
+        forceShow(){ showNow(); },
+        forceHide(){ inflight = 0; hideNow(); }
+      };
+    })(window);
+    </script>
+    
 </body>
 </html>
