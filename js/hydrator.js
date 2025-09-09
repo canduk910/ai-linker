@@ -150,3 +150,6 @@ addEventListener("entities:cleared", () => {
   const banner = document.getElementById("autofill-banner");
   banner?.classList.add("hidden");
 });
+addEventListener("storage", () => {  // 다른 탭/iframe에서 엔터티 갱신 → 배너 표시
+  try { maybeShowBanner(); } catch {}
+});
