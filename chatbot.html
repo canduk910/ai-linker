@@ -124,15 +124,12 @@
             
             <div class="p-4 text-center">
                 <a href="index.html" class="btn btn-ghost">메인으로 돌아가기</a>
+                <a href="/apply.html" target="_blank" rel="noopener" class="btn btn-sm">신청서 새 탭</a>
+                <button id="toggle-apply" class="btn btn-sm btn-primary">옆에 열기</button>
+    </div>
             </div>
         </div>
     </div>
-    <!-- ===== 우측 상단 툴바: 신청서 새 탭 / 옆 패널 열기 ===== -->
-    <div class="fixed top-3 right-3 z-40 flex gap-2">
-      <a href="/apply.html" target="_blank" rel="noopener" class="btn btn-sm">신청서 새 탭</a>
-      <button id="toggle-apply" class="btn btn-sm btn-primary">옆에 열기</button>
-    </div>
-
     <!-- ===== 우측 드로어(오버레이) ===== -->
     <div id="apply-drawer-backdrop"
          class="fixed inset-0 bg-black/30 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity z-40"></div>
@@ -187,7 +184,7 @@
                     },
                     // OpenAI에 보낼 전체 요청 본문을 body에 담아 전송
                     body: JSON.stringify({
-                        model: "gpt-5-mini",
+                        model: "ft:gpt-4.1-2025-04-14:koscom:finance:Bx9vf0hL",
                         messages: [
                             {
                                 role: "system", 
