@@ -14,7 +14,7 @@ export default async (req) => {
   const base = (process.env.AI_LINKER_BASE || "").replace(/\/$/, "");
   const url = `${base}/run-agent`;
   let payload = {};
-  try { payload = await req.json(); } catch (_) {}
+  try { payload = await req.json();
 
   const res = await fetch(url, {
     method: "POST",
@@ -23,7 +23,7 @@ export default async (req) => {
       "API_KEY": process.env.AI_LINKER_API_KEY || ""
     },
     body: JSON.stringify({
-      user_id: payload.user_id || "web-guest",
+      user_id: payload.user_id || "user_kim",
       query: payload.query || ""
     })
   });
@@ -36,4 +36,9 @@ export default async (req) => {
       "Access-Control-Allow-Origin": process.env.CORS_ALLOW_ORIGIN || "*"
     }
   });
+ } catch (e) {
+    return new Response(JSON.stringify({ error: String(e) }), { status: 504 });
+  } finally {
+    clearTimeout(timer);
+  }
 };
