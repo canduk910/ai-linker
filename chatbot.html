@@ -210,7 +210,16 @@
                 });
                 // 🚨 수정된 부분 끝
 
-                const data = await response.json();
+                // 504/HTML 에러 대비: 먼저 text로 받고 JSON 시도
+                const raw = await response.text();
+                if (!response.ok) {
+                    console.error('runAgent failed', response.status, raw);
+                    throw new Error(`runAgent ${response.status}`);
+                }
+                let data = {};
+                try { data = raw ? JSON.parse(raw) : {}; } catch { data = {}; }
+                const logCount = Array.isArray(data.execution_log) ? data.execution_log.length : 0;
+            
                 const finalMsg = data?.final_result?.message || data?.message || "";
                 const logCount = Array.isArray(data?.execution_log) ? data.execution_log.length : 0;
                 // 화면 말풍선 렌더는 chat-interceptor가 수행합니다(로그 1초 간격 + 최종 답).
