@@ -218,7 +218,6 @@
                 }
                 let data = {};
                 try { data = raw ? JSON.parse(raw) : {}; } catch { data = {}; }
-                const logCount = Array.isArray(data.execution_log) ? data.execution_log.length : 0;
             
                 const finalMsg = data?.final_result?.message || data?.message || "";
                 const logCount = Array.isArray(data?.execution_log) ? data.execution_log.length : 0;
