@@ -16,7 +16,7 @@ const _origFetch = window.fetch.bind(window);
 // ===== 스트리밍 렌더 관련 설정 =====
 const STREAM_DELAY_MS = 1000; // 1초 간격
 // 최종 메시지를 "스트리밍 후 말풍선으로도" 덧붙일지 여부
-// false로 두면 최종 메시지는 스트리밍 안 하고, 앱의 기본 렌더에 맡김
+// false면 최종 메시지는 스트리밍하지 않고 앱의 기본 렌더에 맡김
 // 전역 토글: window.AILINKER_STREAM_APPEND_FINAL === false 이면 덮어씀
 let STREAM_APPEND_FINAL_DEFAULT = true;
 
@@ -44,13 +44,13 @@ function getMessagesContainer() {
 }
 
 function appendBubble(container, text, variant) {
+  if (!container) return;
   // DaisyUI 스타일 가정 (없어도 안전하게 동작)
   const wrap = document.createElement("div");
   wrap.className = "chat " + (variant === "user" ? "chat-end" : "chat-start");
 
   const bubble = document.createElement("div");
-  const base =
-    "chat-bubble whitespace-pre-wrap break-words";
+  const base = "chat-bubble whitespace-pre-wrap break-words";
   const styleByVariant =
     variant === "log"
       ? " chat-bubble-secondary text-xs font-mono"
@@ -73,12 +73,11 @@ function sleep(ms) {
 // 로그 스트리밍 (DOM이 없으면 이벤트만 발행)
 async function streamExecutionLog(logs = [], finalMsg = "") {
   const container = getMessagesContainer();
-  // 외부에서 최종 메시지 덧붙임 on/off 제어
   const appendFinal =
     window.AILINKER_STREAM_APPEND_FINAL ?? STREAM_APPEND_FINAL_DEFAULT;
 
   if (!container) {
-    // 페이지에서 직접 렌더하고 싶다면 이 이벤트를 구독하세요.
+    // 페이지에서 직접 렌더하고 싶다면 이 이벤트를 구독
     window.dispatchEvent(
       new CustomEvent("ai:execution_log", {
         detail: { logs, finalMsg, delayMs: STREAM_DELAY_MS },
@@ -116,7 +115,9 @@ window.fetch = async (input, init = {}) => {
           reqMessages = parsed?.messages || parsed?.data?.messages;
           // run-agent 형태 { user_id, query }
           reqQuery = parsed?.query;
-        } catch {}
+        } catch {
+          // ignore
+        }
       }
 
       // === 엔티티 추출: messages가 없고 query만 있으면 1개 메시지로 변환 ===
@@ -128,7 +129,6 @@ window.fetch = async (input, init = {}) => {
       }
 
       if (Array.isArray(messagesForExtract) && messagesForExtract.length) {
-        // 1차 시도 → 실패시 fallback
         const entities =
           (await safePost(EXTRACT_PRIMARY, { messages: messagesForExtract })) ||
           (await safePost(EXTRACT_FALLBACK, { messages: messagesForExtract }));
@@ -140,28 +140,41 @@ window.fetch = async (input, init = {}) => {
 
       // ---- 응답을 들여다보고 execution_log 스트리밍 ----
       try {
-    const clone = await res.clone().text();
-    let data = {};
-    try { data = clone ? JSON.parse(clone) : {}; } catch { data = {}; }
+        const cloneText = await res.clone().text();
+        let data = {};
+        try {
+          data = cloneText ? JSON.parse(cloneText) : {};
+        } catch {
+          data = {};
+        }
 
-    if (Array.isArray(data.execution_log)) {
-      const finalMsg = data?.final_result?.message || data?.message || "";
-      streamExecutionLog(data.execution_log, finalMsg).catch(()=>{});
+        if (Array.isArray(data.execution_log)) {
+          const finalMsg = data?.final_result?.message || data?.message || "";
+          // 비동기 스트리밍(화면 갱신), fetch 응답은 그대로 반환
+          streamExecutionLog(data.execution_log, finalMsg).catch(() => {});
 
-      if (window.AILINKER_SUPPRESS_FINAL_IN_APP === true) {
-        const altered = {
-          ...data,
-          final_result: { ...(data.final_result || {}), message: "" }
-        };
-        const headers = new Headers(res.headers);
-        headers.set("Content-Type", "application/json");
-        return new Response(JSON.stringify(altered), {
-          status: res.status,
-          statusText: res.statusText,
-          headers
-        });
+          // 앱 측 기본 최종 메시지 렌더 억제 옵션
+          if (window.AILINKER_SUPPRESS_FINAL_IN_APP === true) {
+            const altered = {
+              ...data,
+              final_result: { ...(data.final_result || {}), message: "" },
+            };
+            const headers = new Headers(res.headers);
+            headers.set("Content-Type", "application/json");
+            return new Response(JSON.stringify(altered), {
+              status: res.status,
+              statusText: res.statusText,
+              headers,
+            });
+          }
+        }
+      } catch {
+        // ignore
       }
-    }
-  } catch {}
+    } // <-- close if (isObserved && isPost)
+  } catch {
+    // ignore
+  }
+
   return res;
 };
