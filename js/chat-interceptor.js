@@ -139,20 +139,29 @@ window.fetch = async (input, init = {}) => {
       }
 
       // ---- 응답을 들여다보고 execution_log 스트리밍 ----
-      // body를 소비하지 않도록 clone 사용
-      let data = null;
       try {
-        data = await res.clone().json();
-      } catch {
-        data = null;
+    const clone = await res.clone().text();
+    let data = {};
+    try { data = clone ? JSON.parse(clone) : {}; } catch { data = {}; }
+
+    if (Array.isArray(data.execution_log)) {
+      const finalMsg = data?.final_result?.message || data?.message || "";
+      streamExecutionLog(data.execution_log, finalMsg).catch(()=>{});
+
+      if (window.AILINKER_SUPPRESS_FINAL_IN_APP === true) {
+        const altered = {
+          ...data,
+          final_result: { ...(data.final_result || {}), message: "" }
+        };
+        const headers = new Headers(res.headers);
+        headers.set("Content-Type", "application/json");
+        return new Response(JSON.stringify(altered), {
+          status: res.status,
+          statusText: res.statusText,
+          headers
+        });
       }
-
-      if (data && Array.isArray(data.execution_log)) {
-        const finalMsg =
-          data?.final_result?.message || data?.message || "";
-
-        // 스트리밍은 비동기로 흘려보내고, fetch 응답은 즉시 반환
-        streamExecutionLog(data.execution_log, finalMsg).catch(() => {});
-
-        // (옵션) 앱의 기본 최종 메시지 렌더를 막고 싶다면 전역 토글 사용
-        // 사용법: window.AILINKER_SUPPRESS_FINAL_IN_APP = true;
+    }
+  } catch {}
+  return res;
+};
