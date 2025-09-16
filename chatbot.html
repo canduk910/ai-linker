@@ -173,6 +173,7 @@
         }
 
         async function sendMessage() {
+            let logCount = 0;
             const input = document.getElementById('message-input');
             const messagesContainer = document.getElementById('chat-messages');
             
@@ -196,7 +197,7 @@
             // 🚨 수정된 부분 시작
             try {
                 // 요청 URL을 우리 서버리스 함수 주소('/api/chat')로 변경
-                const response = await fetch('/api/run-agent', {   // ← 서버리스 프록시→Cloud Run
+                const response = await fetch('/.netlify/functions/runAgent', {   // ← 서버리스 프록시→Cloud Run
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -220,7 +221,7 @@
                 try { data = raw ? JSON.parse(raw) : {}; } catch { data = {}; }
             
                 const finalMsg = data?.final_result?.message || data?.message || "";
-                const logCount = Array.isArray(data?.execution_log) ? data.execution_log.length : 0;
+                logCount = Array.isArray(data?.execution_log) ? data.execution_log.length : 0;
                 // 화면 말풍선 렌더는 chat-interceptor가 수행합니다(로그 1초 간격 + 최종 답).
                 // 여기서는 '내부 로직(네비게이션/컨텍스트 저장)'만 처리합니다.
 
