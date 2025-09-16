@@ -95,6 +95,11 @@
             }
         }
     </style>
+    <script>
+    // 인터셉터 전역 옵션
+    window.AILINKER_STREAM_APPEND_FINAL = true;   // 로그 이후 최종 답변도 말풍선 추가
+    window.AILINKER_SUPPRESS_FINAL_IN_APP = true; // 앱 측(아래 sendMessage)에서 최종답 중복 렌더 금지
+    </script>
     <script type="module" src="/js/chat-interceptor.js"></script>
 </head>
 <body>
@@ -106,7 +111,7 @@
             
             <div id="chat-messages" class="chat-messages">
                 <div class="message system-message">
-                    안녕하세요! AI-Linker입니다. 소상공인 대출 상담을 도와드리겠습니다.
+                    안녕하세요! AI-Linker입니다. 정책자금 대출 상담을 도와드리겠습니다.
                 </div>
             </div>
             
@@ -191,7 +196,7 @@
             // 🚨 수정된 부분 시작
             try {
                 // 요청 URL을 우리 서버리스 함수 주소('/api/chat')로 변경
-                const response = await fetch('/api/chat', { // <-- URL 변경
+                const response = await fetch('/api/run-agent', {   // ← 서버리스 프록시→Cloud Run
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -199,48 +204,21 @@
                     },
                     // OpenAI에 보낼 전체 요청 본문을 body에 담아 전송
                     body: JSON.stringify({
-                        // model: "ft:gpt-4.1-2025-04-14:koscom:finance:Bx9vf0hL",
-                        //model: "gpt-5-mini",
-                        //model: "gpt-3.5-turbo",
-                        //model: "gpt-5",
-                        model: "gpt-4.1",
-                        messages: [
-                            {
-                                role: "system", 
-                                content: `당신은 AI-Linker 챗봇입니다. 다음 규칙을 엄격히 따르세요:
-                                1. "대출", "소상공인", "정책자금" 중 하나라도 언급되면 "AI-Linker는 소상공인 정책자금 대출의 자동신청을 지원합니다. 어떤 유형의 대출신청을 원하시나요?"라고 안내하고 세션을 유지합니다.
-                                2. "신청현황"이 언급되면 "대출 신청 현황을 확인을 위해 신청현황 페이지로 이동하겠습니다."라고 안내합니다.
-                                3. "대출신청서"가 언급되면 "신청서 작성을 위해 대출신청서 페이지로 이동하겠습니다."라고 안내합니다.
-                                4. 소상공인 대출과 무관한 대화 시도 시 "AI-Linker에서는 현재 소상공인 대출만 지원하고 있습니다."라는 메시지를 출력하고 세션을 종료합니다.
-                                5. 대출 관련 정보는 공식 웹사이트의 최신 정보를 기반으로 안내합니다.
-                                6. 웹사이트 주소는 답변에 절대 노출하지 마세요.
-                                7. 전문적이고 친절한 톤을 유지하세요.`
-                            },
-                            ...window.conversationContext,
-                            {role: "user", content: input_text}
-                        ]
+                      user_id: getUserId(),
+                      query: input_text
                     })
                 });
                 // 🚨 수정된 부분 끝
 
                 const data = await response.json();
-                const aiResponse =
-                  (data?.choices?.[0]?.message?.content)
-                  ?? (data?.output_text)  // Responses API 형태 대응
-                  ?? "";
-
-                // AI 메시지 추가
-                const systemMessage = document.createElement('div');
-                systemMessage.classList.add('message', 'system-message');
-                systemMessage.textContent = aiResponse;
-                messagesContainer.appendChild(systemMessage);
-                autoScroll();
+                const finalMsg = data?.final_result?.message || data?.message || "";
+                const logCount = Array.isArray(data?.execution_log) ? data.execution_log.length : 0;
+                // 화면 말풍선 렌더는 chat-interceptor가 수행합니다(로그 1초 간격 + 최종 답).
+                // 여기서는 '내부 로직(네비게이션/컨텍스트 저장)'만 처리합니다.
 
                 // 대화 컨텍스트 업데이트
-                window.conversationContext.push(
-                    {role: "user", content: input_text},
-                    {role: "assistant", content: aiResponse}
-                );
+                window.conversationContext.push({ role: "user", content: input_text });
+                if (finalMsg) window.conversationContext.push({ role: "assistant", content: finalMsg });
 
                 // 길이 제한(최근 10개 메시지 = 5쌍) — 배열 교체 대신 in-place로 잘라서 참조 유지
                 const MAX = 10; // 필요시 20(=10쌍)로 늘리세요
@@ -250,14 +228,14 @@
                 saveCtx();
 
                 // 신청현황 페이지로 이동 로직
-                if (aiResponse.includes('신청현황 페이지로 이동')) {
+                if (finalMsg.includes('신청현황 페이지')) {
                     setTimeout(() => {
                         window.location.href = 'status.html';
                     }, 1500);
                 }
 
                 // 대출신청서 페이지로 이동 로직
-                if (aiResponse.includes('대출신청서 페이지로 이동')) {
+                if (finalMsg.includes('대출신청서 페이지')) {
                     setTimeout(() => {
                         openApplyPanel();
                     }, 1500);
@@ -271,14 +249,16 @@
                 messagesContainer.appendChild(errorMessage);
                 autoScroll();
             }finally {
-                // ✅ 응답 완료 → 인디케이터 닫기
-                AI_LINKER_TYPING.done();
+                // ✅ 로그 N줄 × 1초 + 여유 400ms 뒤 종료 (최대 20초 캡)
+                const extra = Math.min(20000, (logCount || 0) * 1000 + 400);
+                setTimeout(() => AI_LINKER_TYPING.done(), Math.max(300, extra));
               }
         }
 
         // Enter 키로 메시지 전송
         document.getElementById('message-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
                 sendMessage();
             }
         });
@@ -424,6 +404,10 @@
       };
     })(window);
     </script>
-    
+    <script>
+      function getUserId() {
+        return localStorage.getItem("user_id") || "web-guest";
+      }
+    </script>
 </body>
 </html>
