@@ -1,4 +1,30 @@
+[build]
+  functions = "netlify/functions"
+
+# 깔끔한 /api/* 경로 제공(원한다면)
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  from = "/api/run-agent"
+  to = "/.netlify/functions/runAgent"
   status = 200
+
+[[redirects]]
+  from = "/api/rag-content"
+  to = "/.netlify/functions/ragContent"
+  status = 200
+
+[[redirects]]
+  from = "/api/users"
+  to = "/.netlify/functions/users"
+  status = 200
+
+# CORS/보안 헤더
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+  Access-Control-Allow-Origin = "https://<your-domain>" # 필요시 "*"
+  Access-Control-Allow-Headers = "Content-Type, Authorization, API_KEY"
+  Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+  Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
+  X-Content-Type-Options = "nosniff"
+  X-Frame-Options = "DENY"
+  Referrer-Policy = "strict-origin-when-cross-origin"
