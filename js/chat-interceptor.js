@@ -8,8 +8,8 @@ const CHAT_ENDPOINTS = [
   "/.netlify/functions/runAgent",
 ];
 
-const EXTRACT_PRIMARY = "/api/extract-entities";
-const EXTRACT_FALLBACK = "/.netlify/functions/extract-entities";
+const EXTRACT_PRIMARY = "/.netlify/functions/extract-entities";
+const EXTRACT_FALLBACK = "/api/extract-entities";
 
 const _origFetch = window.fetch.bind(window);
 
