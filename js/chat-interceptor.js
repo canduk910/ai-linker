@@ -131,6 +131,10 @@ async function streamExecutionLog(logs = [], finalMsg = "") {
   if (appendFinal && finalMsg) {
     appendBubble(container, finalMsg, "final");
   }
+
+  // ✨ 스트리밍이 정말 끝난 "그 순간"에 스피너 즉시 종료
+  try { window.AI_LINKER_TYPING?.forceHide?.(); } catch {}
+  window.dispatchEvent(new CustomEvent("ai:stream:done"));
 }
 
 window.fetch = async (input, init = {}) => {
