@@ -101,6 +101,13 @@
     window.AILINKER_SUPPRESS_FINAL_IN_APP = true; // 앱 측(아래 sendMessage)에서 최종답 중복 렌더 금지
     </script>
     <script type="module" src="/js/chat-interceptor.js"></script>
+
+    <script>
+      window.addEventListener("ai:stream:done", () => {
+        // 혹시 남아있다면 강제로 숨김
+        try { AI_LINKER_TYPING.forceHide(); } catch {}
+      });
+    </script>
 </head>
 <body>
     <div class="container">
@@ -259,8 +266,12 @@
                 autoScroll();
             }finally {
                 // ✅ 로그 N줄 × 1초 + 여유 400ms 뒤 종료 (최대 20초 캡)
-                const extra = Math.min(20000, (logCount || 0) * 1000 + 400);
-                setTimeout(() => AI_LINKER_TYPING.done(), Math.max(300, extra));
+               if (logCount > 0) {
+                 // 스트리밍이 끝나면 인터셉터가 직접 숨김(즉시)
+               } else {
+                 // 로그가 없으면 지금 바로 숨김
+                 AI_LINKER_TYPING.forceHide();
+               }
               }
         }
 
