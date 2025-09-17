@@ -45,6 +45,7 @@ function getMessagesContainer() {
 
 function appendBubble(container, text, variant) {
   if (!container) return;
+/*  
   // DaisyUI 스타일 가정 (없어도 안전하게 동작)
   const wrap = document.createElement("div");
   wrap.className = "chat " + (variant === "user" ? "chat-end" : "chat-start");
@@ -64,6 +65,20 @@ function appendBubble(container, text, variant) {
 
   container.appendChild(wrap);
   container.scrollTop = container.scrollHeight;
+*/  
+  // ✅ 기존 chatbot.html의 버블 마크업을 그대로 재사용
+  //   - user  → .message.user-message
+  //   - log/final(assistant) → .message.system-message
+  const div = document.createElement("div");
+  if (variant === "user") {
+    div.className = "message user-message";
+  } else {
+    // log / final 모두 기존 답변색(.system-message)으로
+    div.className = "message system-message";
+  }
+  div.textContent = String(text || "");
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;  
 }
 
 function sleep(ms) {
