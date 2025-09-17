@@ -6,6 +6,7 @@ const SKIP_PATTERNS = [
   /^\s*\[Final\b/i,   // [Final ...]
   /^\s*\[Alarm\b/i,   // [Alarm ...]
   /^\s*\[Thought\b/i, // [Thought ...]
+  /^\s*\[AI-Linker\b/i, // [AI-Linker ...]
 ];
 
 // 기존 + 추가(run-agent) 엔드포인트 모두 관찰
