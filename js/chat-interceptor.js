@@ -1,5 +1,13 @@
 import { setPendingEntities } from "./store/entities.js";
 
+// 스킵 규칙: ".", "[Final", "[Alarm", "[Thought" 로 시작하는 로그는 숨김
+const SKIP_PATTERNS = [
+  /^\s*\./,           // 선행 공백 + 점으로 시작
+  /^\s*\[Final\b/i,   // [Final ...]
+  /^\s*\[Alarm\b/i,   // [Alarm ...]
+  /^\s*\[Thought\b/i, // [Thought ...]
+];
+
 // 기존 + 추가(run-agent) 엔드포인트 모두 관찰
 const CHAT_ENDPOINTS = [
   "/api/chat",
@@ -12,6 +20,13 @@ const EXTRACT_PRIMARY = "/.netlify/functions/extract-entities";
 const EXTRACT_FALLBACK = "/api/extract-entities";
 
 const _origFetch = window.fetch.bind(window);
+
+// === 답변 중 필터링할 대상 정의
+function shouldSkipLog(line) {
+  const s = String(line ?? "").trimStart();
+  return SKIP_PATTERNS.some(re => re.test(s));
+}
+
 
 // ===== 스트리밍 렌더 관련 설정 =====
 const STREAM_DELAY_MS = 1000; // 1초 간격
@@ -91,17 +106,24 @@ async function streamExecutionLog(logs = [], finalMsg = "") {
   const appendFinal =
     window.AILINKER_STREAM_APPEND_FINAL ?? STREAM_APPEND_FINAL_DEFAULT;
 
+ // ✨ 1) 필터링: 숨길 라인 제거
+ const visibleLogs = (logs || [])
+   .map(v => String(v ?? ""))
+   .filter(line => !shouldSkipLog(line));  
+
   if (!container) {
     // 페이지에서 직접 렌더하고 싶다면 이 이벤트를 구독
     window.dispatchEvent(
       new CustomEvent("ai:execution_log", {
-        detail: { logs, finalMsg, delayMs: STREAM_DELAY_MS },
+        // ✨ 2) 이벤트에도 필터링된 로그만 전달
+        detail: { logs: visibleLogs, finalMsg, delayMs: STREAM_DELAY_MS },
       })
     );
     return;
   }
 
-  for (const line of logs) {
+ // ✨ 3) 화면 출력도 필터링된 로그만
+  for (const line of visibleLogs) {
     appendBubble(container, line, "log");
     await sleep(STREAM_DELAY_MS);
   }
